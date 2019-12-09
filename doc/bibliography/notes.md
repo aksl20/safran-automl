@@ -31,5 +31,21 @@ an overview of existing work in this field of research and categorize them accor
 explored. Much recent research therefore focuses on developing methods
 that reduce the cost of these performance estimations.
 
+### Search space
+
+A relatively simple search space is the space of chain-structured neural networks. A chain-structured neural network
+architecture $A$ can be written as a sequence of n layers, where the i’th layer Li
+receives its input from layer i − 1 and its output serves as the input for layer
+i + 1, i.e., A = Ln ◦ . . . L1 ◦ L0
+
+### State of the art : Three different method 
+
+People offers different type of algorithme to try to answer to the question of NAS. We need to explore this three
+article to better understand the problem :
+
+- [Efficient Neural Architecture Search - Pham et al;](https://arxiv.org/pdf/1802.03268.pdf)
+- [Differentiable architecture search (DARTS) - ](https://arxiv.org/pdf/1806.09055.pdf)
+- Evolution - Real et al.; Liu et al.
+
 Source:
 
