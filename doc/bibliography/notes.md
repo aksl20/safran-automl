@@ -34,13 +34,36 @@ that reduce the cost of these performance estimations.
 ### Search space
 
 A relatively simple search space is the space of chain-structured neural networks. A chain-structured neural network
-architecture $A$ can be written as a sequence of n layers, where the i’th layer Li
-receives its input from layer i − 1 and its output serves as the input for layer
-i + 1, i.e., A = Ln ◦ . . . L1 ◦ L0
+architecture _A_ can be written as a sequence of _n_ layers where the i’th layer _L_i_ receives its input from layer _i − 1_ and its output serves as the input for layer _i + 1_. The search space is then parametrized by :
+- The (maximum) number of layers _n_
+- The type of operation every layer can execute , e.g., pooling, convolution, or more advanced layer types like depthwise separable convolutions or dilated convolutions
+- Hyperparameters associated with the operation, e.g., number of filters, kernel size and strides for a convolutional layer, or simply
+number of units for fully-connected networks.
+
+Recent works on NAS incorporate modern design elements known from hand-crafted architectures such as skip connections, which
+allow to build complex, multi-branch networks. Below some example of works: 
+- [SMASH](https://paperswithcode.com/paper/smash-one-shot-model-architecture-search)
+- [Learning transferable architecture for scalable image recognition](https://paperswithcode.com/paper/learning-transferable-architectures-for)
+- [Path-Level Network Transformation for Efficient Architecture Search](https://paperswithcode.com/paper/path-level-network-transformation-for)
+
+ In this case the input of layer i can be formally described as a function _g_i(L_out_i-1, ..., L_out_0)_ combining previous layers output : 
+ - Chaine-structured network : _g_i(L_out_i-1, ..., L_out_0) = L_out_i-1_
+ - ResidualNetwork : _g_i(L_out_i-1, ..., L_out_0) = L_out_i-1 + L_out_j avec j < i_
+ - DenseNet : _g_i(L_out_i-1, ..., L_out_0) = concat(L_out_i-1, ..., L_out_0)_
+
+Motivated by hand-crafted architectures consisting of repeated motifs [Zoph et al.](https://paperswithcode.com/paper/learning-transferable-architectures-for) and [Zhong et al.](https://paperswithcode.com/paper/practical-block-wise-neural-network) propose to search for such motifs, dubbed cells or blocks, respectively, rather than for whole architectures. Zoph et al. optimize two different kind of cells: a normal cell that preservers the dimensionality of the input and a reduction cell which reduces the spatial dimension.
+
+![illustration-cells](https://github.com/aksl20/safran-automl/blob/documentation/doc/image/cell-block.PNG)
+
+The final architecture is then built by stacking these cells in a predefined manner, as illustrated in Figure 3.3. This search space has two major advantages compared to the ones discussed above:
+1. The size of the search space is drastically reduced since cells can be comparably small
+2. Cells can more easily be transferred to other datasets by adapting the number of cells used within a model.
+
+However, a new design-choice arises when using a cell-based search space, namely how to choose __the meta-architecture__: how many cells shall be used and how should they be connected to build the actual model? One step in the direction of optimizing meta-architectures is the hierarchical search space introduced by [Liu et al.](https://paperswithcode.com/paper/hierarchical-representations-for-efficient)
 
 ### State of the art : Three different method 
 
-People offers different type of algorithme to try to answer to the question of NAS. We need to explore this three
+People offers different type of algorithm to try to answer to the question of NAS. We need to explore this three
 article to better understand the problem :
 
 - [Efficient Neural Architecture Search - Pham et al;](https://arxiv.org/pdf/1802.03268.pdf)
