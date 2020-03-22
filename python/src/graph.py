@@ -2,6 +2,7 @@ import torch
 import itertools
 import numpy as np
 import re
+import scipy.sparse as sp
 
 
 def parse_modules(modules):
@@ -19,7 +20,7 @@ def parse_modules(modules):
         the name and parameters of the layer.
     """
 
-    graph = {}
+    search_space = {}
     idx_layer = 0
     nb_choice = 0
 
@@ -39,7 +40,7 @@ def parse_modules(modules):
                 nb_choice -= 1
                 continue
             else:
-                graph[name] = parameters
+                search_space[name] = parameters
         elif isinstance(module, torch.nn.modules.container.ModuleList):
             # Iterate over each choice in the layerchoice and store them in a the
             # Dictionnary
@@ -47,7 +48,7 @@ def parse_modules(modules):
             for choice in module:
                 choices.append((name, str(choice)))
             nb_choice = len(choices)
-            graph[idx_layer] = choices
+            search_space[idx_layer] = choices
             idx_layer += 1
         else:
             if nb_choice > 0:
@@ -56,13 +57,13 @@ def parse_modules(modules):
                 nb_choice -= 1
                 continue
             else:
-                graph[idx_layer] = (name, parameters)
+                search_space[idx_layer] = (name, parameters)
                 idx_layer += 1
-    return graph
+    return search_space
 
 
-def get_search_space(graph):
-    search_space = []
+def get_graphs(graph):
+    graphs = []
     layers_choice = [layer for layer in graph.values() if isinstance(layer, list)]
     choices = [y for x in layers_choice for y in x]
     nb_graph = len(list(itertools.product(choices)))
@@ -76,8 +77,8 @@ def get_search_space(graph):
                 graph_i[idx_layer] = choice
             else:
                 graph_i[idx_layer] = layer
-        search_space.append(graph_i)
-    return search_space
+        graphs.append(graph_i)
+    return graphs
 
 
 def get_graph_attribut(graph):
@@ -99,11 +100,27 @@ def get_graph_attribut(graph):
 
     for layer_in, layer_out in skipcons:
         edges.append((names[layer_in], names[layer_out] + 1))
+    
+    nodes = {idx: node for idx, node in nodes}
+  
+    edges = np.array(edges)
+    adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
+                    shape=(len(nodes), len(nodes)),
+                    dtype=np.float32)
+    
+    features = np.eye(len(nodes))
+      
+    # build symmetric adjacency matrix
+    adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
 
-    n = len(nodes)
-    adjacency = np.zeros((n, n))
+    return nodes, edges, features, adj
 
-    for edge in edges:
-        adjacency[edge[0], edge[1]] += 1
 
-    return nodes, edges, adjacency
+def normalize(mx):
+    """Row-normalize sparse matrix"""
+    rowsum = np.array(mx.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = sp.diags(r_inv)
+    mx = r_mat_inv.dot(mx)
+    return mx
