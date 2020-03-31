@@ -81,7 +81,7 @@ def get_graphs(graph):
     return graphs
 
 
-def get_graph_attribut(graph):
+def get_graph_attribut(graph, symetric=True):
     nodes = []
     names = {}
     edges = []
@@ -109,9 +109,10 @@ def get_graph_attribut(graph):
                     dtype=np.float32)
     
     features = np.eye(len(nodes))
-      
-    # build symmetric adjacency matrix
-    adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+    
+    if symetric:
+        # build symmetric adjacency matrix
+        adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
 
     return nodes, edges, features, adj
 
