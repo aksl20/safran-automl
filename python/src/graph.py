@@ -81,7 +81,17 @@ def get_graphs(graph):
     return graphs
 
 
-def get_graph_attribut(graph, symetric=True):
+def get_parameters(node, char_to_remove=','):
+    node = ''.join(list(filter(lambda char: char not in char_to_remove, node.lower())))
+    parameters = node.replace('(', ' ', 1).split()
+    parameters = ' '.join(list(filter(lambda el: not el.isdigit(), parameters)))
+    name = parameters.split()[0]
+    parameters = parameters.replace('(', '').replace(')', '').split()[1:]
+    parameters = list(filter(lambda parameter: '=' in parameter, parameters))
+    return [name] + parameters
+
+
+def get_graph_attribut(graph, symetric=True, dict_params=None):
     nodes = []
     names = {}
     edges = []
@@ -100,16 +110,29 @@ def get_graph_attribut(graph, symetric=True):
 
     for layer_in, layer_out in skipcons:
         edges.append((names[layer_in], names[layer_out] + 1))
-    
-    nodes = {idx: node for idx, node in nodes}
+
+    nodes = {idx: get_parameters(node) for idx, node in nodes}
   
     edges = np.array(edges)
     adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
                     shape=(len(nodes), len(nodes)),
                     dtype=np.float32)
-    
-    features = np.eye(len(nodes))
-    
+
+    if dict_params is None:
+        features = np.eye(len(nodes))
+    else:
+        features = np.zeros((len(dict_params), len(nodes)))
+        for idx_node, parameters in nodes.items():
+            parameters = [parameter.split('=') for parameter in parameters]
+            for parameter in parameters:
+                if parameter[0] in dict_params:
+                    if parameter[1] == 'true':
+                        features[dict_params[parameter[0]], idx_node] += 1
+                    elif parameter[1] == 'false':
+                        features[dict_params[parameter[0]], idx_node] += 0
+                    else:
+                        features[dict_params[parameter[0]], idx_node] += float(parameter[1])
+
     if symetric:
         # build symmetric adjacency matrix
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
