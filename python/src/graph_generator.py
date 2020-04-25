@@ -5,9 +5,10 @@ import torch
 class GraphGenerator:
     def __init__(self):
         self.search_space = {}
+        self.choices_given = {}
 
     def parse_modules(self, modules):
-        """Fonction to parse the module list return by the pytorch model.
+        """Fonction to parse the module list returned by the pytorch model.
 
         Parameters
         ----------
@@ -60,17 +61,39 @@ class GraphGenerator:
                     self.search_space[idx_layer] = (name, parameters)
                     idx_layer += 1
 
+    
+    def _add_layer(self, graph, idx_layer, layer, indices_choice, skipcon=False):
+        if not self.choices_given.get(idx_layer) or len(self.choices_given[idx_layer]) == len(layer):
+            self.choices_given[idx_layer] = []
+            choice = np.random.choice(indices_choice)
+        else:
+            indices_choice = [choice for choice in indices_choice if choice not in self.choices_given[idx_layer]]
+            choice = np.random.choice(indices_choice)
+        
+        if skipcon and choice:
+            graph[idx_layer] = layer
+        elif not skipcon:
+            graph[idx_layer] = layer[choice]
+        self.choices_given[idx_layer].append(choice)
+        return graph
+
+    def clear_cache(self):
+        self.choices_given.clear()
+
     def generate(self):
+        """Generate child network pick from the search space. 
+        """
         graph = {}
 
         for idx_layer, layer in self.search_space.items():
+            # Check if layer is a mutable from LayerChoice
             if isinstance(layer, np.ndarray):
-                nb_choices = len(layer)
-                choice = np.random.randint(low=0, high=nb_choices)
-                graph[idx_layer] = layer[choice]
+                indices_choice = list(range(len(layer)))
+                graph = self._add_layer(graph, idx_layer, layer, indices_choice)
+            # Check if layer is a mutable from InputChoice (skipconnect)
             elif isinstance(idx_layer, str):
-                if np.random.choice([True, False]):
-                    graph[idx_layer] = layer
+                indices_choice = [0, 1]
+                graph = self._add_layer(graph, idx_layer, layer, indices_choice, skipcon=True)
             else:
                 graph[idx_layer] = layer
 
