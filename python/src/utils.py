@@ -1,6 +1,7 @@
 import numpy as np
 import re
 import scipy.sparse as sp
+from sknetwork.utils import Bunch
 
 
 def get_parameters(node, char_to_remove=','):
@@ -58,8 +59,14 @@ def get_graph_attribut(graph, symetric=True, dict_params=None):
     if symetric:
         # build symmetric adjacency matrix
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+    
+    graph = Bunch()
+    graph.adjacency = adj
+    graph.edges = edges
+    graph.features = features
+    graph.nodes = nodes
 
-    return nodes, edges, features, adj
+    return graph
 
 
 def normalize(mx):
