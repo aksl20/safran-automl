@@ -14,7 +14,7 @@ def get_parameters(node, char_to_remove=','):
     return [name] + parameters
 
 
-def get_graph_attribut(graph, symetric=True, dict_params=None):
+def get_graph_attribut(graph, symetric=True, params=False, word2vec=False):
     nodes = []
     names = {}
     edges = []
@@ -33,28 +33,29 @@ def get_graph_attribut(graph, symetric=True, dict_params=None):
 
     for layer_in, layer_out in skipcons:
         edges.append((names[layer_in], names[layer_out] + 1))
-
-    nodes = {idx: get_parameters(node) for idx, node in nodes}
   
     edges = np.array(edges)
     adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
                     shape=(len(nodes), len(nodes)),
                     dtype=np.float32)
 
-    if dict_params is None:
+    if params :
         features = np.eye(len(nodes))
+    elif word2vec:
+        features = None
     else:
-        features = np.zeros((len(dict_params), len(nodes)))
+        nodes = {idx: get_parameters(node) for idx, node in nodes}
+        features = np.zeros((len(params), len(nodes)))
         for idx_node, parameters in nodes.items():
             parameters = [parameter.split('=') for parameter in parameters]
             for parameter in parameters:
-                if parameter[0] in dict_params:
+                if parameter[0] in params:
                     if parameter[1] == 'true':
-                        features[dict_params[parameter[0]], idx_node] += 1
+                        features[params[parameter[0]], idx_node] += 1
                     elif parameter[1] == 'false':
-                        features[dict_params[parameter[0]], idx_node] += 0
+                        features[params[parameter[0]], idx_node] += 0
                     else:
-                        features[dict_params[parameter[0]], idx_node] += float(parameter[1])
+                        features[params[parameter[0]], idx_node] += float(parameter[1])
 
     if symetric:
         # build symmetric adjacency matrix

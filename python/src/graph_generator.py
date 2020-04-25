@@ -67,7 +67,8 @@ class GraphGenerator:
             self.choices_given[idx_layer] = []
             choice = np.random.choice(indices_choice)
         else:
-            indices_choice = [choice for choice in indices_choice if choice not in self.choices_given[idx_layer]]
+            if not skipcon:
+                indices_choice = [choice for choice in indices_choice if choice not in self.choices_given[idx_layer]]
             choice = np.random.choice(indices_choice)
         
         if skipcon and choice:
