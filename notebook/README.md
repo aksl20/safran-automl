@@ -1,0 +1,1 @@
+Here you can find the notebook that are used to create the classification dataset for texture/defect classification
