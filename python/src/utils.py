@@ -1,7 +1,7 @@
 import numpy as np
 import re
 import scipy.sparse as sp
-from sknetwork.utils import Bunch
+import networkx as nx
 
 
 def get_parameters(node, char_to_remove=','):
@@ -14,7 +14,7 @@ def get_parameters(node, char_to_remove=','):
     return [name] + parameters
 
 
-def get_graph_attribut(graph, symetric=True, params=False, word2vec=False):
+def get_graph_attribut(graph, params=False, word2vec=False):
     nodes = []
     names = {}
     edges = []
@@ -33,18 +33,16 @@ def get_graph_attribut(graph, symetric=True, params=False, word2vec=False):
 
     for layer_in, layer_out in skipcons:
         edges.append((names[layer_in], names[layer_out] + 1))
-  
+    
+    nodes = {idx: node for idx, node in nodes}
     edges = np.array(edges)
-    adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
-                    shape=(len(nodes), len(nodes)),
-                    dtype=np.float32)
 
     if params :
         features = np.eye(len(nodes))
     elif word2vec:
         features = None
     else:
-        nodes = {idx: get_parameters(node) for idx, node in nodes}
+        nodes = {idx: get_parameters(node) for idx, node in nodes.items()}
         features = np.zeros((len(params), len(nodes)))
         for idx_node, parameters in nodes.items():
             parameters = [parameter.split('=') for parameter in parameters]
@@ -56,18 +54,11 @@ def get_graph_attribut(graph, symetric=True, params=False, word2vec=False):
                         features[params[parameter[0]], idx_node] += 0
                     else:
                         features[params[parameter[0]], idx_node] += float(parameter[1])
-
-    if symetric:
-        # build symmetric adjacency matrix
-        adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
     
-    graph = Bunch()
-    graph.adjacency = adj
-    graph.edges = edges
-    graph.features = features
-    graph.nodes = nodes
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
 
-    return graph
+    return G, nodes, features
 
 
 def normalize(mx):
